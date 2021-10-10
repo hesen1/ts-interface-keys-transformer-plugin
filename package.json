@@ -1,0 +1,34 @@
+{
+  "name": "ts-interface-keys-transformer-plugin",
+  "version": "1.0.0",
+  "description": "It parses the interface information during the compilation phase of TypeScript.",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "repository": "https://github.com/hesen1/ts-interface-keys-transformer-plugin",
+  "bugs": "https://github.com/hesen1/ts-interface-keys-transformer-plugin/issues",
+  "scripts": {
+    "test": "tsc && node test/index.js && jest --coverage",
+    "build": "tsc",
+    "prepare": "npm run build",
+    "postversion": "git push && git push --tags"
+  },
+  "author": "sen.he",
+  "license": "MIT",
+  "keywords": [
+    "typescript",
+    "interface",
+    "transformer",
+    "plugin"
+  ],
+  "devDependencies": {
+    "@types/jest": "^24.0.13",
+    "@types/lodash": "^4.14.154",
+    "@types/node": "^12.0.7",
+    "jest": "^24.8.0",
+    "ts-jest": "^24.0.2",
+    "typescript": "^3.9.3"
+  },
+  "dependencies": {
+    "lodash": "^4.17.15"
+  }
+}

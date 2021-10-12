@@ -293,6 +293,18 @@ function isEnumType(symbol: any, typeChecker: ts.TypeChecker): boolean {
     return tempSymbol['valueDeclaration']['kind'] === ts.SyntaxKind.EnumMember || tempSymbol['valueDeclaration']['kind'] === ts.SyntaxKind.EnumDeclaration;
 }
 
+function handleLiteralType(literal: any): PropertyType[] {
+    const types: PropertyType[] = [];
+    switch (literal.kind) {
+        case ts.SyntaxKind.NullKeyword:
+            types.push({ type: `null` });
+            return types;
+        default:
+            types.push({ type: `unknown` });
+            return types;
+    }
+}
+
 function getPropertyType(symbol: any, typeChecker?: ts.TypeChecker): PropertyType[] {
     const types: PropertyType[] = [];
 
@@ -360,6 +372,8 @@ function getPropertyType(symbol: any, typeChecker?: ts.TypeChecker): PropertyTyp
         case ts.SyntaxKind.NullKeyword:
             types.push({ type: `null` });
             return types;
+        case ts.SyntaxKind.LiteralType:
+                return handleLiteralType(symbol.literal);
         case ts.SyntaxKind.ObjectKeyword:
             types.push({ type: `object` });
             return types;

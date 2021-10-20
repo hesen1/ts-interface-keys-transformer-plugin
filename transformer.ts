@@ -93,7 +93,7 @@ function visitNode(node: ts.Node, program: ts.Program): ts.Node {
     const parentSymbol = type.getSymbol();
     if (!parentSymbol) return node;
 
-    const interfaceInfo = analysisSymbol(parentSymbol, typeChecker, node.typeArguments[0]['typeName']['escapedText']);
+    const interfaceInfo = analysisSymbol(parentSymbol, typeChecker, (node.typeArguments[0] as any)['typeName']['escapedText']);
     if (interfaceInfo === undefined) return node;
 
     const assignments: ts.PropertyAssignment[] = [];
@@ -113,14 +113,14 @@ function getEnumProperties(symbol: ts.Symbol): Property {
         type: getPropertyType(symbol.valueDeclaration),
         docComment: ts.displayPartsToString(symbol.getDocumentationComment(undefined)),
         jsDocTags: symbol.getJsDocTags(),
-        enumTypeValue: symbol.valueDeclaration['initializer']['text']
+        enumTypeValue: (symbol.valueDeclaration as any)['initializer']['text']
     };
     return p;
 }
 
 function analysisSymbol(symbol: ts.Symbol, typeChecker: ts.TypeChecker, nodeName?: string, rootSymbol?: ts.Symbol): InterfaceInfo | undefined {
     if (!symbol) return undefined;
-    if (rootSymbol && rootSymbol['id'] === symbol['id']) {
+    if (rootSymbol && (rootSymbol as any)['id'] === (symbol as any)['id']) {
         return undefined;
     } else if (!rootSymbol) {
         rootSymbol = symbol;
@@ -136,14 +136,14 @@ function analysisSymbol(symbol: ts.Symbol, typeChecker: ts.TypeChecker, nodeName
     const children = symbol.members; // typeChecker.getPropertiesOfType(type);
     if (children === undefined) {
         if (symbol['valueDeclaration'] && symbol['valueDeclaration'].kind === ts.SyntaxKind.EnumDeclaration) {
-            symbol['valueDeclaration']['members'].map((childNode: ts.Node) => {
+            (symbol as any)['valueDeclaration']['members'].map((childNode: ts.Node) => {
                 if (!childNode) return;
 
-                interfaceInfo.properties.push(getEnumProperties(childNode['symbol']));
+                interfaceInfo.properties.push(getEnumProperties((childNode as any)['symbol']));
             });
             return interfaceInfo;
         } else if (symbol['valueDeclaration'] && symbol['valueDeclaration']['kind'] === ts.SyntaxKind.EnumMember) {
-            interfaceInfo.properties.push(getEnumProperties(symbol['valueDeclaration']['symbol']));
+            interfaceInfo.properties.push(getEnumProperties((symbol as any)['valueDeclaration']['symbol']));
             return interfaceInfo;
         }
         return undefined;
@@ -152,9 +152,9 @@ function analysisSymbol(symbol: ts.Symbol, typeChecker: ts.TypeChecker, nodeName
     children.forEach(child => {
         interfaceInfo.properties.push(...getSymbolProperties(child, typeChecker, rootSymbol as ts.Symbol));
     });
-    symbol.declarations.forEach(node => {
-        if (!node['heritageClauses']) return;
-        for (const item of node['heritageClauses']) {
+    symbol.declarations?.forEach(node => {
+        if (!(node as any)['heritageClauses']) return;
+        for (const item of (node as any)['heritageClauses']) {
             if (!item.types) continue;
 
             item.types.forEach((type: any) => {
@@ -186,12 +186,12 @@ function getIndexSignature(symbol: ts.Symbol, typeChecker: ts.TypeChecker, rootS
         name: symbol.getEscapedName().toString(),
         modifiers: modifiers,
         optional: true,
-        type: getPropertyType(declarations[0]['type'], typeChecker),
+        type: getPropertyType((declarations[0] as any)['type'], typeChecker),
         docComment: ts.displayPartsToString(symbol.getDocumentationComment(typeChecker)),
         jsDocTags: symbol.getJsDocTags()
     };
 
-    const childInterface = getRelatedObjectProperties(declarations[0]['type'], typeChecker, rootSymbol);
+    const childInterface = getRelatedObjectProperties((declarations[0] as any)['type'], typeChecker, rootSymbol);
     childInterface ? p.valueInterface = childInterface : undefined;
 
     return [p];
@@ -202,14 +202,14 @@ function getRelatedObjectProperties(node: ts.TypeNode, typeChecker: ts.TypeCheck
     if (!node || !typeChecker) return undefined;
     if (isSymbolInterface(node, typeChecker)) return undefined;
 
-    if (node['kind'] === ts.SyntaxKind.UnionType && node['types']) {
-        for (const childNode of node['types']) {
+    if (node['kind'] === ts.SyntaxKind.UnionType && (node as any)['types']) {
+        for (const childNode of (node as any)['types']) {
             const childInterface = getRelatedObjectProperties(childNode, typeChecker, rootSymbol);
             childInterface ? children.push(...childInterface) : undefined;
         }
     } else if (node['kind'] === ts.SyntaxKind.TypeLiteral || node['kind'] === ts.SyntaxKind.TypeReference) {
-        if (node['typeArguments']) {
-            for (const childNode of node['typeArguments']) {
+        if ((node as any)['typeArguments']) {
+            for (const childNode of (node as any)['typeArguments']) {
                 const r = getRelatedObjectProperties(childNode, typeChecker, rootSymbol);
                 r ? children.push(...r) : undefined;
             }
@@ -219,10 +219,10 @@ function getRelatedObjectProperties(node: ts.TypeNode, typeChecker: ts.TypeCheck
             childInterface ? children.push(childInterface) : undefined;
         }
     } else if (node['kind'] === ts.SyntaxKind.ArrayType) {
-        if (node['elementType']['kind'] === ts.SyntaxKind.ParenthesizedType) return getRelatedObjectProperties(node['elementType']['type'], typeChecker, rootSymbol);
+        if ((node as any)['elementType']['kind'] === ts.SyntaxKind.ParenthesizedType) return getRelatedObjectProperties((node as any)['elementType']['type'], typeChecker, rootSymbol);
 
-        const typeSymbol = typeChecker.getTypeFromTypeNode(node['elementType']).symbol;
-        const childInterface = analysisSymbol(typeSymbol, typeChecker, getTypeReferenceNodeName(node['elementType']), rootSymbol);
+        const typeSymbol = typeChecker.getTypeFromTypeNode((node as any)['elementType']).symbol;
+        const childInterface = analysisSymbol(typeSymbol, typeChecker, getTypeReferenceNodeName((node as any)['elementType']), rootSymbol);
         childInterface ? children.push(childInterface) : undefined;
     }
 
@@ -230,13 +230,13 @@ function getRelatedObjectProperties(node: ts.TypeNode, typeChecker: ts.TypeCheck
 }
 
 function isSymbolInterface(typeNode: ts.TypeNode, typeChecker?: ts.TypeChecker): boolean {
-    if (!typeNode || !typeNode['typeName']) return false;
+    if (!typeNode || !(typeNode as any)['typeName']) return false;
     if (!typeChecker) return false;
 
-    const type = typeChecker.getTypeFromTypeNode(typeNode['typeName']);
-    if (!type || !type.symbol || !type.symbol['type'] || !type.symbol['type']['checker']) return false;
+    const type = typeChecker.getTypeFromTypeNode((typeNode as any)['typeName']);
+    if (!type || !type.symbol || !(type.symbol as any)['type'] || !(type.symbol as any)['type']['checker']) return false;
 
-    const symbolType = type.symbol['type']['checker'].getESSymbolType();
+    const symbolType = (type.symbol as any)['type']['checker'].getESSymbolType();
     return symbolType.intrinsicName === 'symbol';
 }
 
@@ -268,12 +268,12 @@ function getSymbolProperties(symbol: ts.Symbol, typeChecker: ts.TypeChecker, roo
         name: symbol.escapedName.toString(),
         modifiers,
         optional,
-        type: getPropertyType(symbol.valueDeclaration ? symbol.valueDeclaration['type'] : symbol['type'], typeChecker),
+        type: getPropertyType(symbol.valueDeclaration ? (symbol.valueDeclaration as any)['type'] : (symbol as any)['type'], typeChecker),
         docComment: ts.displayPartsToString(symbol.getDocumentationComment(typeChecker)),
         jsDocTags: symbol.getJsDocTags()
     };
 
-    const childInterface = getRelatedObjectProperties(symbol.valueDeclaration ? symbol.valueDeclaration['type'] : symbol['type'], typeChecker, rootSymbol);
+    const childInterface = getRelatedObjectProperties(symbol.valueDeclaration ? (symbol.valueDeclaration as any)['type'] : (symbol as any)['type'], typeChecker, rootSymbol);
     childInterface ? property.valueInterface = childInterface : undefined;
 
     properties.push(property);
@@ -282,8 +282,8 @@ function getSymbolProperties(symbol: ts.Symbol, typeChecker: ts.TypeChecker, roo
 }
 
 function getTypeReferenceNodeName(node: ts.TypeNode): string {
-    if (node.kind !== ts.SyntaxKind.TypeReference || !node['typeName']) return '';
-    return node['typeName'].escapedText || node['typeName'].left.escapedText + `.` + node['typeName'].right.escapedText;
+    if (node.kind !== ts.SyntaxKind.TypeReference || !(node as any)['typeName']) return '';
+    return (node as any)['typeName'].escapedText || (node as any)['typeName'].left.escapedText + `.` + (node as any)['typeName'].right.escapedText;
 }
 
 function isEnumType(symbol: any, typeChecker: ts.TypeChecker): boolean {
